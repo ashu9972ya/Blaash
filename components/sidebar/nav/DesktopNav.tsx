@@ -1,3 +1,4 @@
+'use client'
 import {
   Collapsible,
   CollapsibleContent,
@@ -17,6 +18,7 @@ import {
 import { ChevronDown } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import React from "react";
 
 type SidebarItem = {
@@ -48,20 +50,29 @@ const sidebarItems: SidebarItem[] = [
   {
     label: "Playlist Manager",
     icon: "/Image 2.svg",
-    link: "/data2",
+    link: "/",
     content: "Product playlist",
   },
 ];
 
-
-const CollapsibleGroup = ({ label, icon, link, content }: SidebarItem) => (
+const CollapsibleGroup = ({
+  label,
+  icon,
+  link,
+  content,
+  active,
+}: SidebarItem & { active: boolean }) => (
   <Collapsible className="group/collapsible">
     <SidebarGroup>
       <SidebarGroupLabel asChild className="text-white">
         <CollapsibleTrigger>
           <div className="flex gap-x-2 items-center">
             <Image src={icon} alt={label} width={25} height={29} />
-            <div className="text-sm font-rubik font-medium text-[#828293]">
+            <div
+              className={`text-sm font-rubik font-medium ${
+                active ? "text-[#FFFFFF]" : "text-[#828293]"
+              }`}
+            >
               {label}
             </div>
           </div>
@@ -88,6 +99,7 @@ const CollapsibleGroup = ({ label, icon, link, content }: SidebarItem) => (
 );
 
 const DesktopNav = () => {
+  const pathname = usePathname();
   return (
     <Sidebar collapsible="icon" className="">
       <SidebarTrigger />
@@ -95,7 +107,7 @@ const DesktopNav = () => {
       <SidebarHeader className="mt-5 ">
         <Image src="/image 18.svg" alt="" width={90} height={50} />
       </SidebarHeader>
-      <SidebarGroup className="mt-[38px] " >
+      <SidebarGroup className="mt-[38px] ">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
@@ -110,10 +122,14 @@ const DesktopNav = () => {
         </SidebarMenu>
       </SidebarGroup>
       {sidebarItems.map((item, index) => (
-        <CollapsibleGroup key={index} {...item} />
+        <CollapsibleGroup
+          key={index}
+          {...item}
+          active={pathname === item.link}
+        />
       ))}
 
-      <SidebarGroup  className="">
+      <SidebarGroup className="">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
