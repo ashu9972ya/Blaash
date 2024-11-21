@@ -1,101 +1,114 @@
+"use client";
+import PlaylistManeger from "@/components/playlistManeger/PlaylistManeger";
+import { Button } from "@/components/ui/button";
+import { useApi } from "@/hooks/useApi";
+import { PlaylistData, YoutubePlaylistItem } from "@/types/youtubePlaylist";
+import { getSession } from "next-auth/react";
 import Image from "next/image";
+import { useEffect, useState } from "react";
+
+interface Session {
+  user: {
+    name: string;
+    email: string;
+    image: string;
+  };
+  accessToken: string;
+}
+interface Video {
+  id: string;
+  snippet: {
+    title: string;
+    thumbnails: { medium: { url: string } };
+  };
+}
+
+interface PlaylistItemsResponse {
+  items: Video[];
+}
+
+
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [session, setSession] = useState<Session | null>(null);
+  const [selectedPlaylist, setSelectedPlaylist] = useState<PlaylistData | null>(null);
+  const [videos, setVideos] = useState<Video[]>([]);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const { data: playlists, fetchData } = useApi<{ items: YoutubePlaylistItem[] }>(
+    "https://www.googleapis.com/youtube/v3/playlists?part=snippet&mine=true&maxResults=25",
+    { manual: true }
+  );
+  console.log("playlists",playlists)
+
+  useEffect(() => {
+    const fetchSession = async () => {
+      const sessionData = await getSession();
+      setSession(sessionData as Session);
+    };
+    fetchSession();
+  }, []);
+
+  const handleFetchPlaylists = () => {
+    if (!session) return;
+
+    fetchData({
+      headers: {
+        Authorization: `Bearer ${session.accessToken}`,
+      },
+    });
+  };
+
+  const handleThumbnailClick = async (playlist: PlaylistData) => {
+    setSelectedPlaylist(playlist);
+
+    const response = await fetch(
+      `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${playlist.id}&maxResults=50`,
+      {
+        headers: {
+          Authorization: `Bearer ${session?.accessToken}`,
+        },
+      }
+    );
+
+    const data: PlaylistItemsResponse = await response.json();
+    setVideos(data.items || []);
+  };
+
+  const playlistsData:PlaylistData[] =
+    playlists?.items?.map((item) => ({
+      id: item.id,
+      title: item.snippet.title,
+      thumbnail: item.snippet.thumbnails.medium.url,
+      videos: 10, // Update dynamically as needed
+    })) || [];
+
+  return (
+    <>
+      <div className="flex justify-between items-center mt-[25px]">
+        <div className="text-[#FFFFFF] text-base font-rubik font-medium">
+          Product Playlists
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+        <Button
+          className="bg-[#ed3833] hover:bg-red-400"
+          onClick={handleFetchPlaylists}
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+          <div className="text-[#FFFFFF] font-rubik font-medium text-sm">
+            Import Youtube Playlist
+          </div>
+        </Button>
+        <div className="bg-[#017EFA] flex items-center justify-center gap-x-[1.5px] text-[#FFFFFF] py-[6px] px-[10px] rounded-[10px]">
+          <Image src="/link.svg" alt="" width={20} height={20} />
+          <div className="text-[#FFFFFF] font-rubik font-medium text-sm">
+            Generate Code
+          </div>
+        </div>
+      </div>
+      <PlaylistManeger
+        playlists={playlistsData}
+        onThumbnailClick={handleThumbnailClick}
+        selectedPlaylist={selectedPlaylist}
+        videos={videos}
+      />
+    </>
   );
 }
