@@ -62,10 +62,10 @@ const CollapsibleGroup = ({
   content,
   active,
 }: SidebarItem & { active: boolean }) => (
-  <Collapsible className="group/collapsible">
+  <Collapsible className="group/collapsible" defaultOpen={active} >
     <SidebarGroup>
       <SidebarGroupLabel asChild className="text-white">
-        <CollapsibleTrigger>
+        <CollapsibleTrigger >
           <div className="flex gap-x-2 items-center">
             <Image src={icon} alt={label} width={25} height={29} />
             <div
