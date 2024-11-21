@@ -16,6 +16,8 @@ type Props = {
   selectedPlaylist: PlaylistData | null;
   videos: Video[]; // Add the videos prop here
   onThumbnailClick: (clickedPlaylist: PlaylistData) => Promise<void>;
+  onReorder: (updatedPlaylists: PlaylistData[]) => void; // Added onReorder to Props
+
 };
 
 const PlaylistManeger = ({
@@ -23,6 +25,7 @@ const PlaylistManeger = ({
   selectedPlaylist,
   videos,
   onThumbnailClick,
+  onReorder
 }: Props) => {
   return (
     <div className="flex h-full w-full flex-wrap gap-4 mt-4 lg:flex-nowrap">
@@ -31,6 +34,8 @@ const PlaylistManeger = ({
         <PlaylistGrid
           playlists={playlists}
           onThumbnailClick={onThumbnailClick}
+          onReorder={onReorder} // Pass the onReorder prop
+
         />
       </div>
 

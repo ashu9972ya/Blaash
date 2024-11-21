@@ -74,6 +74,11 @@ export default function Home() {
     setVideos(data.items || []);
   };
 
+  const handleReorder = (updatedPlaylists: PlaylistData[]) => {
+    console.log("Reordered playlists:", updatedPlaylists);
+    // Update state or perform other actions as needed
+  };
+
   const playlistsData:PlaylistData[] =
     playlists?.items?.map((item) => ({
       id: item.id,
@@ -108,6 +113,7 @@ export default function Home() {
         onThumbnailClick={handleThumbnailClick}
         selectedPlaylist={selectedPlaylist}
         videos={videos}
+        onReorder={handleReorder}
       />
     </>
   );
