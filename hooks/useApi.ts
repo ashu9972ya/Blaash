@@ -3,7 +3,7 @@ import axios, { AxiosRequestConfig } from "axios";
 
 interface UseApiOptions<T> {
   initialData?: T;
-  manual?: boolean; // Whether to fetch automatically or not
+  manual?: boolean; 
 }
 
 interface UseApiResult<T> {
@@ -13,11 +13,6 @@ interface UseApiResult<T> {
   fetchData: (config?: AxiosRequestConfig) => Promise<void>;
 }
 
-/**
- * A reusable hook for making API calls.
- * @param url - The API endpoint.
- * @param options - Additional options for the hook.
- */
 export const useApi = <T>(
   url: string,
   options?: UseApiOptions<T>

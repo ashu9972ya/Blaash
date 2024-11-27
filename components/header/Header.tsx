@@ -64,7 +64,7 @@ const Header = ( ) => {
           <Input
             placeholder="Search Project ..."
             className="text-sm"
-            defaultValue={"hello"}
+            defaultValue={""}
           />
         </div>
 
@@ -81,9 +81,11 @@ const Header = ( ) => {
               CN
             </AvatarFallback>
           </Avatar>
+          {session?.user.name &&(
           <div className="text-sm font-rubik font-semibold text-white hidden sm:block">
             {session?.user.name}
           </div>
+          )}
           <div className="flex-shrink-0">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -97,12 +99,15 @@ const Header = ( ) => {
               <DropdownMenuContent className="w-56">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
+                {session?.user.name &&(
                 <DropdownMenuGroup>
+
                   <DropdownMenuItem>
                     <User />
                     <span>{session?.user?.name}</span>
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
+                )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
                   {session ? (

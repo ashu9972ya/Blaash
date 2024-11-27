@@ -57,7 +57,7 @@ const DraggablePlaylist = ({
         <Image
           src={playlist.thumbnail}
           alt={playlist.title}
-          className="w-full h-auto object-cover"
+          className="h-36 object-cover"
           width={241.3}
           height={163.89}
         />

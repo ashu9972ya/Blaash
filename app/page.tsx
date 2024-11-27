@@ -1,11 +1,16 @@
 "use client";
 import PlaylistManeger from "@/components/playlistManeger/PlaylistManeger";
 import { Button } from "@/components/ui/button";
+import { ToastAction } from "@/components/ui/toast";
+import { useToast } from "@/hooks/use-toast";
 import { useApi } from "@/hooks/useApi";
 import { PlaylistData, YoutubePlaylistItem } from "@/types/youtubePlaylist";
-import { getSession } from "next-auth/react";
+import { getSession, signIn } from "next-auth/react";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { doc, setDoc } from "firebase/firestore";
+import { db } from "@/firebaseConfig";
+import { debounce } from "lodash";
 
 interface Session {
   user: {
@@ -27,18 +32,38 @@ interface PlaylistItemsResponse {
   items: Video[];
 }
 
-
+const localPlaylists: PlaylistData[] = [
+  {
+    id: "local1",
+    title: "Local Playlist 1",
+    thumbnail: "/image 49.png",
+    videos: 5,
+  },
+  {
+    id: "local2",
+    title: "Local Playlist 2",
+    thumbnail: "/image 49.png",
+    videos: 8,
+  },
+];
 
 export default function Home() {
   const [session, setSession] = useState<Session | null>(null);
-  const [selectedPlaylist, setSelectedPlaylist] = useState<PlaylistData | null>(null);
-  const [videos, setVideos] = useState<Video[]>([]);
+  const [selectedPlaylist, setSelectedPlaylist] = useState<PlaylistData | null>(
+    null
+  );
+  const [mergedPlaylists, setMergedPlaylists] = useState<PlaylistData[]>([]); // Move to state
 
-  const { data: playlists, fetchData } = useApi<{ items: YoutubePlaylistItem[] }>(
-    "https://www.googleapis.com/youtube/v3/playlists?part=snippet&mine=true&maxResults=25",
+  const [videos, setVideos] = useState<Video[]>([]);
+  const { toast } = useToast();
+
+  const { data: playlists, fetchData } = useApi<{
+    items: YoutubePlaylistItem[];
+  }>(
+    "https://www.googleapis.com/youtube/v3/playlists?part=snippet&mine=true&maxResults=50",
     { manual: true }
   );
-  console.log("playlists",playlists)
+  console.log("playlists", playlists);
 
   useEffect(() => {
     const fetchSession = async () => {
@@ -47,45 +72,100 @@ export default function Home() {
     };
     fetchSession();
   }, []);
+  
 
   const handleFetchPlaylists = () => {
-    if (!session) return;
+    if (!session?.accessToken) {
+      toast({
+        variant: "destructive",
+        title: "Please Login",
+        action: (
+          <ToastAction altText="Try again" onClick={() => signIn("google")}>
+            Login
+          </ToastAction>
+        ),
+      });
+    }
 
     fetchData({
       headers: {
-        Authorization: `Bearer ${session.accessToken}`,
+        Authorization: `Bearer ${session?.accessToken}`,
       },
     });
   };
 
   const handleThumbnailClick = async (playlist: PlaylistData) => {
     setSelectedPlaylist(playlist);
+    try {
+      const response = await fetch(
+        `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${playlist.id}&maxResults=50`,
+        {
+          headers: {
+            Authorization: `Bearer ${session?.accessToken}`,
+          },
+        }
+      );
 
-    const response = await fetch(
-      `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${playlist.id}&maxResults=50`,
-      {
-        headers: {
-          Authorization: `Bearer ${session?.accessToken}`,
-        },
-      }
-    );
-
-    const data: PlaylistItemsResponse = await response.json();
-    setVideos(data.items || []);
+      const data: PlaylistItemsResponse = await response.json();
+      console.log(data, 'ddsfgdgdg')
+      setVideos(data.items || []);
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error fetching playlists",
+        description: error instanceof Error ? error.message : "An unknown error occurred",
+      });
+    }
   };
 
-  const handleReorder = (updatedPlaylists: PlaylistData[]) => {
+  const handleReorder = debounce(async (updatedPlaylists: PlaylistData[]) => {
     console.log("Reordered playlists:", updatedPlaylists);
-    // Update state or perform other actions as needed
-  };
+    setMergedPlaylists(updatedPlaylists);
+  
+    if (!session?.user?.email) {
+      toast({
+        variant: "destructive",
+        title: "Error saving playlist order",
+        description: "User email is unavailable. Please log in and try again.",
+      });
+      return;
+    }
+  
+    try {
+      const playlistOrder = updatedPlaylists.map((playlist) => playlist.id);
+      await setDoc(
+        doc(db, "user_playlists", session.user.email),
+        { playlistOrder },
+        { merge: true }
+      );
+      toast({
+        variant: "success",
+        title: "Playlist order saved",
+        description: "Your playlist order has been updated successfully.",
+      });
+    } catch (error) {
+      console.error("Error saving playlist order:", error);
+      toast({
+        variant: "destructive",
+        title: "Error saving playlist order",
+        description: "Could not save playlist order to Firebase.",
+      });
+    }
+  }, 500);
 
-  const playlistsData:PlaylistData[] =
-    playlists?.items?.map((item) => ({
-      id: item.id,
-      title: item.snippet.title,
-      thumbnail: item.snippet.thumbnails.medium.url,
-      videos: 10, // Update dynamically as needed
-    })) || [];
+  useEffect(() => {
+    const playlistsData: PlaylistData[] =
+      playlists?.items?.map((item) => ({
+        id: item.id,
+        title: item.snippet.title,
+        thumbnail: item.snippet.thumbnails.medium.url,
+        videos: 10,
+      })) || [];
+
+    const merged = [...localPlaylists, ...playlistsData];
+    merged.sort((a, b) => b.videos - a.videos);
+    setMergedPlaylists(merged);
+  }, [playlists]);
 
   return (
     <>
@@ -109,7 +189,7 @@ export default function Home() {
         </div>
       </div>
       <PlaylistManeger
-        playlists={playlistsData}
+        playlists={mergedPlaylists}
         onThumbnailClick={handleThumbnailClick}
         selectedPlaylist={selectedPlaylist}
         videos={videos}

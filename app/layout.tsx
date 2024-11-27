@@ -6,6 +6,7 @@ import DesktopNav from "@/components/sidebar/nav/DesktopNav";
 import Header from "@/components/header/Header";
 import AuthProvider from "@/context/authprovider";
 import { getServerSession } from "next-auth";
+import { Toaster } from "@/components/ui/toaster";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -43,6 +44,8 @@ export default async function RootLayout({
               <Header />
 
               {children}
+              <Toaster />
+
             </main>
           </SidebarProvider>
         </AuthProvider>
